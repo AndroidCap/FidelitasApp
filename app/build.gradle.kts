@@ -46,7 +46,7 @@ dependencies {
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
-    
+
     // Hilt
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
@@ -59,9 +59,9 @@ dependencies {
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
-    
+
     implementation(libs.lifecycle.viewmodel.compose)
-    
+
     // Room
     implementation(libs.room.runtime)
     implementation(libs.room.ktx)
@@ -70,4 +70,9 @@ dependencies {
     implementation(libs.retrofit)
     implementation(libs.converter.gson)
     implementation(libs.logging.interceptor)
+
+    // Navegação do Jetpack Compose
+    implementation(libs.androidx.navigation.compose)
+// Persistência de Sessão e Preferências (DataStore)
+    implementation(libs.androidx.datastore.preferences)
 }
