@@ -2,9 +2,9 @@ package com.g1.fidelitasapp.ui.login
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.g1.fidelitasapp.data.repository.AuthRepository
 import com.g1.fidelitasapp.data.storage.SessionManager
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -14,7 +14,8 @@ import javax.inject.Inject
 
 @HiltViewModel
 class LoginViewModel @Inject constructor(
-    private val sessionManager: SessionManager
+    private val sessionManager: SessionManager,
+    private val authRepository: AuthRepository // Repositório da API real injetado
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(LoginUiState())
@@ -24,14 +25,10 @@ class LoginViewModel @Inject constructor(
         checkExistingSession()
     }
 
-    /**
-     * Verifica imediatamente no DataStore se já existe uma sessão de 7 dias válida.
-     */
     private fun checkExistingSession() {
         viewModelScope.launch {
             sessionManager.isSessionValidFlow.collect { isValid ->
                 if (isValid) {
-                    // Se a sessão for válida, sinaliza para o NavGraph saltar para a Home
                     _uiState.update { it.copy(isSuccess = true) }
                 }
             }
@@ -50,38 +47,38 @@ class LoginViewModel @Inject constructor(
         _uiState.update { it.copy(rememberMe = rememberMe) }
     }
 
-    /**
-     * Valida os campos e simula o processo de login com a API.
-     */
     fun login() {
         val currentState = _uiState.value
 
-        // Validação de E-mail (Requisito de UI)
         if (!currentState.email.contains("@") || !currentState.email.contains(".")) {
             _uiState.update { it.copy(errorMessage = "Por favor, insira um e-mail válido.") }
             return
         }
 
-        // Validação de Senha
         if (currentState.password.length < 6) {
             _uiState.update { it.copy(errorMessage = "A senha deve ter no mínimo 6 caracteres.") }
             return
         }
 
-        // Inicia o processo de login (mostra indicador de carregamento)
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
 
-            // Simula tempo de resposta de API (1.5 segundos)
-            delay(1500)
+            // Chama a API real construída em Node.js
+            val result = authRepository.authenticate(currentState.email, currentState.password)
 
-            // Se o usuário marcou "Lembrar de mim", salva a data e status no DataStore
-            if (currentState.rememberMe) {
-                sessionManager.saveSession()
-            }
-
-            // Avisa a tela que o login teve sucesso
-            _uiState.update { it.copy(isLoading = false, isSuccess = true) }
+            result.fold(
+                onSuccess = { token ->
+                    // Login bem-sucedido!
+                    if (currentState.rememberMe) {
+                        sessionManager.saveSession()
+                    }
+                    _uiState.update { it.copy(isLoading = false, isSuccess = true) }
+                },
+                onFailure = { exception ->
+                    // Exibe a mensagem de erro (ex: "Usuário ou senha inválidos")
+                    _uiState.update { it.copy(isLoading = false, errorMessage = exception.message) }
+                }
+            )
         }
     }
 }
