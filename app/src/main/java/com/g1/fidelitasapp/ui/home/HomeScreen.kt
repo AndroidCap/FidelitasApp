@@ -59,8 +59,10 @@ import kotlinx.coroutines.launch
 fun HomeScreen(
     viewModel: HomeViewModel,
     sessionManager: SessionManager,
+    onNavigateToExtrato: () -> Unit, // Nova ação de clique
     onLogout: () -> Unit
-) {
+)
+ {
     val uiState by viewModel.uiState.collectAsState()
     val coroutineScope = rememberCoroutineScope()
 
@@ -185,7 +187,7 @@ fun HomeScreen(
                                 .clip(RoundedCornerShape(8.dp))
                                 .background(SurfaceDarkElevated)
                                 .padding(horizontal = 12.dp, vertical = 6.dp)
-                                .clickable { /* Navegação futura */ }
+                                .clickable { onNavigateToExtrato() }
                         ) {
                             Text(
                                 text = "Extrato",

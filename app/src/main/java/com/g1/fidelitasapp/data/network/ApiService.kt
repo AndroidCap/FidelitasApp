@@ -19,5 +19,11 @@ interface ApiService {
     suspend fun getPromocoes(
         @Header("Authorization") token: String
     ): Response<List<PromocaoResponse>>
+
+    @GET("extrato")
+    suspend fun getExtrato(
+        @Header("Authorization") token: String
+    ): Response<List<TransacaoResponse>>
+
 }
 

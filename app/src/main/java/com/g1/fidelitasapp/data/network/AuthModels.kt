@@ -28,4 +28,12 @@ data class PromocaoResponse(
     @SerializedName("pontos") val pontos: Int,
     @SerializedName("imageUrl") val imageUrl: String
 )
+// Resposta recebida do endpoint /extrato
+data class TransacaoResponse(
+    @SerializedName("id") val id: Int,
+    @SerializedName("descricao") val descricao: String,
+    @SerializedName("pontos") val pontos: Int,
+    @SerializedName("isEntrada") val isEntrada: Boolean,
+    @SerializedName("dataOperacao") val dataOperacao: String
+)
 
