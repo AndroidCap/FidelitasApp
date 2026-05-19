@@ -8,6 +8,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.g1.fidelitasapp.data.storage.SessionManager
 import com.g1.fidelitasapp.ui.home.HomeScreen
+import com.g1.fidelitasapp.ui.home.HomeViewModel
 import com.g1.fidelitasapp.ui.login.LoginScreen
 import com.g1.fidelitasapp.ui.login.LoginViewModel
 
@@ -42,7 +43,9 @@ fun NavGraph(
 
         // Rota 2: Home
         composable(Routes.HOME) {
+            val homeViewModel: HomeViewModel = hiltViewModel() // Instancia o ViewModel da Home usando Hilt
             HomeScreen(
+                viewModel = homeViewModel,
                 sessionManager = sessionManager,
                 onLogout = {
                     // Ao sair, volta para o Login e limpa a pilha de retorno

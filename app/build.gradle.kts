@@ -75,4 +75,7 @@ dependencies {
     implementation(libs.androidx.navigation.compose)
 // Persistência de Sessão e Preferências (DataStore)
     implementation(libs.androidx.datastore.preferences)
+    // Carregamento de Imagens da Web (Coil)
+    implementation(libs.coil.compose)
+
 }

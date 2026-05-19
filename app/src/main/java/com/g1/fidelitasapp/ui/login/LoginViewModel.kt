@@ -70,15 +70,15 @@ class LoginViewModel @Inject constructor(
                 onSuccess = { token ->
                     // Login bem-sucedido!
                     if (currentState.rememberMe) {
-                        sessionManager.saveSession()
+                        sessionManager.saveSession(token) // Passa o token recebido
                     }
                     _uiState.update { it.copy(isLoading = false, isSuccess = true) }
                 },
                 onFailure = { exception ->
-                    // Exibe a mensagem de erro (ex: "Usuário ou senha inválidos")
                     _uiState.update { it.copy(isLoading = false, errorMessage = exception.message) }
                 }
             )
+
         }
     }
 }
