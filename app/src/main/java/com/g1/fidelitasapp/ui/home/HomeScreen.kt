@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -60,6 +61,8 @@ fun HomeScreen(
     viewModel: HomeViewModel,
     sessionManager: SessionManager,
     onNavigateToExtrato: () -> Unit, // Nova ação de clique
+    onNavigateToCatalogo: () -> Unit, // Nova assinatura
+    onNavigateToEnviar: () -> Unit, // Nova ação de clique
     onLogout: () -> Unit
 )
  {
@@ -70,6 +73,7 @@ fun HomeScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(BackgroundDark)
+            .statusBarsPadding() // Empurra o Header para baixo da bateria e relógio
     ) {
         if (uiState.isLoading) {
             CircularProgressIndicator(
@@ -147,8 +151,12 @@ fun HomeScreen(
                         .fillMaxWidth()
                         .padding(horizontal = 24.dp)
                         .clip(RoundedCornerShape(24.dp))
-                        .background(SurfaceDark)
-                        .border(1.dp, PrimaryGold.copy(alpha = 0.4f), RoundedCornerShape(24.dp))
+                        .background(SurfaceDark.copy(alpha = 0.9f)) // Vidro escuro
+                        .border(
+                            width = 1.5.dp,
+                            color = PrimaryGold.copy(alpha = 0.4f), // Glow dourado na borda
+                            shape = RoundedCornerShape(24.dp)
+                        )
                         .padding(24.dp)
                 ) {
                     Text(
@@ -227,12 +235,12 @@ fun HomeScreen(
                     HomeShortcutItem(
                         icon = Icons.Default.ShoppingCart,
                         label = "Trocar Pontos",
-                        onClick = { /* Ação Futura */ }
+                        onClick = { onNavigateToCatalogo() }
                     )
                     HomeShortcutItem(
                         icon = Icons.Default.Send,
                         label = "Enviar",
-                        onClick = { /* Ação Futura */ }
+                        onClick = { onNavigateToEnviar() }
                     )
                 }
 
