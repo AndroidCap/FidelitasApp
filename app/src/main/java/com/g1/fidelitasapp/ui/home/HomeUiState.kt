@@ -7,5 +7,8 @@ data class HomeUiState(
     val saldoPontos: Int = 0,
     val promocoes: List<PromocaoResponse> = emptyList(),
     val isLoading: Boolean = false,
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+    val promocaoSelecionada: PromocaoResponse? = null,
+    val exibirDialogo: Boolean = false,
+    val isResgating: Boolean = false
 )

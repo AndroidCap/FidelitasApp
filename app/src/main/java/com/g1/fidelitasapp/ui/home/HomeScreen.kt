@@ -47,6 +47,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.g1.fidelitasapp.data.storage.SessionManager
+import com.g1.fidelitasapp.ui.components.GlassmorphismDialog
 import com.g1.fidelitasapp.ui.theme.AccentGold
 import com.g1.fidelitasapp.ui.theme.BackgroundDark
 import com.g1.fidelitasapp.ui.theme.PrimaryGold
@@ -54,8 +55,13 @@ import com.g1.fidelitasapp.ui.theme.SurfaceDark
 import com.g1.fidelitasapp.ui.theme.SurfaceDarkElevated
 import com.g1.fidelitasapp.ui.theme.TextPrimary
 import com.g1.fidelitasapp.ui.theme.TextSecondary
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import kotlinx.coroutines.launch
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     viewModel: HomeViewModel,
@@ -69,11 +75,54 @@ fun HomeScreen(
     val uiState by viewModel.uiState.collectAsState()
     val coroutineScope = rememberCoroutineScope()
 
+    Scaffold(
+        containerColor = BackgroundDark,
+        topBar = {
+            TopAppBar(
+                title = {
+                    Column {
+                        Text(
+                            text = "Olá,",
+                            color = TextSecondary,
+                            fontSize = 14.sp
+                        )
+                        Text(
+                            text = uiState.userName,
+                            color = TextPrimary,
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                },
+                actions = {
+                    IconButton(
+                        onClick = {
+                            coroutineScope.launch {
+                                sessionManager.clearSession()
+                                onLogout()
+                            }
+                        },
+                        modifier = Modifier
+                            .clip(CircleShape)
+                            .background(SurfaceDark)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.ExitToApp,
+                            contentDescription = "Desconectar",
+                            tint = Color(0xFFCF6679)
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = BackgroundDark
+                )
+            )
+        }
+    ) { innerPadding ->
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(BackgroundDark)
-            .statusBarsPadding() // Empurra o Header para baixo da bateria e relógio
+            .padding(innerPadding)
     ) {
         if (uiState.isLoading) {
             CircularProgressIndicator(
@@ -105,46 +154,6 @@ fun HomeScreen(
                     .verticalScroll(rememberScrollState())
                     .padding(bottom = 24.dp)
             ) {
-                // 1. Header (Saudação + Botão Sair)
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 24.dp, vertical = 24.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column {
-                        Text(
-                            text = "Olá,",
-                            color = TextSecondary,
-                            fontSize = 16.sp
-                        )
-                        Text(
-                            text = uiState.userName,
-                            color = TextPrimary,
-                            fontSize = 22.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                    IconButton(
-                        onClick = {
-                            coroutineScope.launch {
-                                sessionManager.clearSession()
-                                onLogout()
-                            }
-                        },
-                        modifier = Modifier
-                            .clip(CircleShape)
-                            .background(SurfaceDark)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.ExitToApp,
-                            contentDescription = "Desconectar",
-                            tint = Color(0xFFCF6679)
-                        )
-                    }
-                }
-
                 // 2. Card de Saldo Premium (Gold Highlight)
                 Column(
                     modifier = Modifier
@@ -262,11 +271,26 @@ fun HomeScreen(
                     horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     items(uiState.promocoes) { promocao ->
-                        PromocaoCard(promocao)
+                        PromocaoCard(
+                            promocao = promocao,
+                            onClick = { viewModel.selecionarPromocao(promocao) }
+                        )
                     }
                 }
             }
         }
+
+        // Dialog de confirmação de resgate
+        if (uiState.exibirDialogo && uiState.promocaoSelecionada != null) {
+            GlassmorphismDialog(
+                titulo = "Confirmar Resgate",
+                mensagem = "Deseja trocar ${uiState.promocaoSelecionada!!.pontos} pontos por: ${uiState.promocaoSelecionada!!.titulo}?",
+                textoConfirmar = "Resgatar",
+                onDismissRequest = { viewModel.fecharDialogo() },
+                onConfirm = { viewModel.resgatar() }
+            )
+        }
+    }
     }
 }
 
@@ -306,13 +330,17 @@ fun HomeShortcutItem(
 }
 
 @Composable
-fun PromocaoCard(promocao: com.g1.fidelitasapp.data.network.PromocaoResponse) {
+fun PromocaoCard(
+    promocao: com.g1.fidelitasapp.data.network.PromocaoResponse,
+    onClick: () -> Unit
+) {
     Column(
         modifier = Modifier
             .width(260.dp)
             .clip(RoundedCornerShape(16.dp))
             .background(SurfaceDark)
             .border(1.dp, SurfaceDarkElevated, RoundedCornerShape(16.dp))
+            .clickable { onClick() }
     ) {
         // Carrega imagem da Web
         AsyncImage(

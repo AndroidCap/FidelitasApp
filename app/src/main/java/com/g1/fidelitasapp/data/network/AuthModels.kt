@@ -37,3 +37,15 @@ data class TransacaoResponse(
     @SerializedName("dataOperacao") val dataOperacao: String
 )
 
+// Requisição e Resposta do endpoint /resgatar
+data class ResgatarRequest(
+    @SerializedName("promocaoId") val promocaoId: Int,
+    @SerializedName("pontos") val pontos: Int,
+    @SerializedName("titulo") val titulo: String
+)
+
+data class ResgatarResponse(
+    @SerializedName("novoSaldo") val novoSaldo: Int,
+    @SerializedName("transacao") val transacao: TransacaoResponse
+)
+

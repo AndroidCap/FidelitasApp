@@ -2,6 +2,7 @@ package com.g1.fidelitasapp.ui.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.g1.fidelitasapp.data.network.PromocaoResponse
 import com.g1.fidelitasapp.data.repository.HomeRepository
 import com.g1.fidelitasapp.data.storage.SessionManager
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -69,6 +70,43 @@ class HomeViewModel @Inject constructor(
                     )
                 }
             }
+        }
+    }
+
+    fun selecionarPromocao(promocao: PromocaoResponse) {
+        _uiState.update { it.copy(promocaoSelecionada = promocao, exibirDialogo = true) }
+    }
+
+    fun fecharDialogo() {
+        _uiState.update { it.copy(exibirDialogo = false, promocaoSelecionada = null) }
+    }
+
+    fun resgatar() {
+        val promocao = _uiState.value.promocaoSelecionada ?: return
+        viewModelScope.launch {
+            _uiState.update { it.copy(isResgating = true, exibirDialogo = false) }
+            val token = sessionManager.tokenFlow.first()
+            val result = homeRepository.resgatar(token, promocao.id, promocao.pontos, promocao.titulo)
+            result.fold(
+                onSuccess = { novoSaldo ->
+                    _uiState.update {
+                        it.copy(
+                            isResgating = false,
+                            saldoPontos = novoSaldo,
+                            promocaoSelecionada = null
+                        )
+                    }
+                },
+                onFailure = { error ->
+                    _uiState.update {
+                        it.copy(
+                            isResgating = false,
+                            errorMessage = error.message,
+                            promocaoSelecionada = null
+                        )
+                    }
+                }
+            )
         }
     }
 }

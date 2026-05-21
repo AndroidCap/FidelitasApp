@@ -25,5 +25,10 @@ interface ApiService {
         @Header("Authorization") token: String
     ): Response<List<TransacaoResponse>>
 
+    @POST("resgatar")
+    suspend fun resgatar(
+        @Header("Authorization") token: String,
+        @Body request: ResgatarRequest
+    ): Response<ResgatarResponse>
 }
 
