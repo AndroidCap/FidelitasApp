@@ -146,8 +146,9 @@ fun CatalogoScreen(
                     onDismissRequest = { exibirDialogo = false },
                     onConfirm = {
                         exibirDialogo = false
-                        // Dispara ação de sucesso e repassa os pontos deduzidos
-                        onTrocaConfirmada(premioSelecionado!!.pontos)
+                        viewModel.resgatar(premioSelecionado!!) {
+                            onTrocaConfirmada(premioSelecionado!!.pontos)
+                        }
                     }
                 )
             }

@@ -79,17 +79,29 @@ class EnviarPontosViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
 
-            // Simula delay de rede da transferência
-            kotlinx.coroutines.delay(1500)
-
-            _uiState.update {
-                it.copy(
-                    isLoading = false,
-                    isSucesso = true,
-                    saldoDisponivel = state.saldoDisponivel - pontosInt
-                )
-            }
-            onSucesso()
+            val token = sessionManager.tokenFlow.first()
+            val result = homeRepository.enviar(token, pontosInt, state.destinatario)
+            
+            result.fold(
+                onSuccess = { novoSaldo ->
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            isSucesso = true,
+                            saldoDisponivel = novoSaldo
+                        )
+                    }
+                    onSucesso()
+                },
+                onFailure = { error ->
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            errorMessage = error.message ?: "Erro ao enviar pontos."
+                        )
+                    }
+                }
+            )
         }
     }
 

@@ -49,3 +49,12 @@ data class ResgatarResponse(
     @SerializedName("transacao") val transacao: TransacaoResponse
 )
 
+data class EnviarRequest(
+    @SerializedName("pontos") val pontos: Int,
+    @SerializedName("destinatario") val destinatario: String
+)
+
+data class EnviarResponse(
+    @SerializedName("novoSaldo") val novoSaldo: Int,
+    @SerializedName("transacao") val transacao: TransacaoResponse
+)

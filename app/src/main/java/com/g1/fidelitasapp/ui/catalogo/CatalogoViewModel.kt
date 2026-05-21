@@ -63,4 +63,27 @@ class CatalogoViewModel @Inject constructor(
             }
         }
     }
+
+    fun resgatar(promocao: PromocaoResponse, onSuccess: () -> Unit) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+            val token = sessionManager.tokenFlow.first()
+            val result = repository.resgatar(token, promocao.id, promocao.pontos, promocao.titulo)
+            
+            result.fold(
+                onSuccess = {
+                    _uiState.update { it.copy(isLoading = false) }
+                    onSuccess()
+                },
+                onFailure = { error ->
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            errorMessage = error.message ?: "Erro ao resgatar"
+                        )
+                    }
+                }
+            )
+        }
+    }
 }

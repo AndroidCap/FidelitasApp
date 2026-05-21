@@ -69,9 +69,7 @@ class LoginViewModel @Inject constructor(
             result.fold(
                 onSuccess = { token ->
                     // Login bem-sucedido!
-                    if (currentState.rememberMe) {
-                        sessionManager.saveSession(token) // Passa o token recebido
-                    }
+                    sessionManager.saveSession(token) // Passa o token recebido
                     _uiState.update { it.copy(isLoading = false, isSuccess = true) }
                 },
                 onFailure = { exception ->
