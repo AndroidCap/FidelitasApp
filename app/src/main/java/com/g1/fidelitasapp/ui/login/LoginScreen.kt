@@ -1,5 +1,6 @@
 package com.g1.fidelitasapp.ui.login
 
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -34,6 +35,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -54,11 +56,24 @@ fun LoginScreen(
     onNavigateToHome: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val context = LocalContext.current
 
     // Observa o sucesso do login. Assim que for 'true', executa o salto para a Home.
     LaunchedEffect(uiState.isSuccess) {
         if (uiState.isSuccess) {
             onNavigateToHome()
+        }
+    }
+
+    // Observador de Toasts (Sucesso e Erro)
+    LaunchedEffect(uiState.errorMessage, uiState.successMessage) {
+        uiState.errorMessage?.let {
+            Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
+            viewModel.clearMessages()
+        }
+        uiState.successMessage?.let {
+            Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
+            viewModel.clearMessages()
         }
     }
 
@@ -92,17 +107,6 @@ fun LoginScreen(
                 color = AccentGold,
                 modifier = Modifier.padding(bottom = 32.dp)
             )
-
-            // Exibição de Erro (se houver)
-            uiState.errorMessage?.let { error ->
-                Text(
-                    text = error,
-                    color = ErrorRed,
-                    fontSize = 14.sp,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(bottom = 16.dp)
-                )
-            }
 
             // Campo E-mail
             OutlinedTextField(

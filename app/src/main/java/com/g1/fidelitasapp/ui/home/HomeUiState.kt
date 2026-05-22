@@ -8,6 +8,7 @@ data class HomeUiState(
     val promocoes: List<PromocaoResponse> = emptyList(),
     val isLoading: Boolean = false,
     val errorMessage: String? = null,
+    val successMessage: String? = null,
     val promocaoSelecionada: PromocaoResponse? = null,
     val exibirDialogo: Boolean = false,
     val isResgating: Boolean = false

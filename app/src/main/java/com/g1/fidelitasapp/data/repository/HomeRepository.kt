@@ -7,6 +7,9 @@ import com.g1.fidelitasapp.data.network.DashboardResponse
 import com.g1.fidelitasapp.data.network.PromocaoResponse
 import com.g1.fidelitasapp.data.network.ResgatarRequest
 import com.g1.fidelitasapp.data.network.EnviarRequest
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -15,15 +18,16 @@ class HomeRepository @Inject constructor(
     private val apiService: ApiService,
     private val transactionDao: TransactionDao
 ) {
-    /**
-     * Carrega as informações do Dashboard (Nome e Saldo de Pontos) da API.
-     */
+    private val _saldoFlow = MutableStateFlow(0)
+    val saldoFlow: StateFlow<Int> = _saldoFlow.asStateFlow()
+
     suspend fun fetchDashboard(token: String): Result<DashboardResponse> {
         return try {
-            val formattedToken = "Bearer $token"
-            val response = apiService.getDashboard(formattedToken)
+            val response = apiService.getDashboard("Bearer $token")
             if (response.isSuccessful && response.body() != null) {
-                Result.success(response.body()!!)
+                val data = response.body()!!
+                _saldoFlow.value = data.saldoPontos
+                Result.success(data)
             } else {
                 Result.failure(Exception("Erro ao carregar dados do usuário"))
             }
@@ -32,13 +36,9 @@ class HomeRepository @Inject constructor(
         }
     }
 
-    /**
-     * Carrega as 10 Recompensas/Promoções da API.
-     */
     suspend fun fetchPromocoes(token: String): Result<List<PromocaoResponse>> {
         return try {
-            val formattedToken = "Bearer $token"
-            val response = apiService.getPromocoes(formattedToken)
+            val response = apiService.getPromocoes("Bearer $token")
             if (response.isSuccessful && response.body() != null) {
                 Result.success(response.body()!!)
             } else {
@@ -49,17 +49,11 @@ class HomeRepository @Inject constructor(
         }
     }
 
-    /**
-     * Envia o resgate de uma promoção para a API, deduz o saldo e
-     * salva a nova transação no banco local Room.
-     * Retorna o novo saldo em caso de sucesso.
-     */
     suspend fun resgatar(token: String, promocaoId: Int, pontos: Int, titulo: String): Result<Int> {
         return try {
-            val formattedToken = "Bearer $token"
-            val response = apiService.resgatar(formattedToken, ResgatarRequest(promocaoId, pontos, titulo))
-            if (response.isSuccessful && response.body() != null) {
-                val body = response.body()!!
+            val response = apiService.resgatar("Bearer $token", ResgatarRequest(promocaoId, pontos, titulo))
+            val body = response.body()
+            if (response.isSuccessful && body != null) {
                 transactionDao.insertTransaction(
                     TransactionEntity(
                         id = body.transacao.id,
@@ -69,9 +63,10 @@ class HomeRepository @Inject constructor(
                         dataOperacao = body.transacao.dataOperacao
                     )
                 )
+                _saldoFlow.value = body.novoSaldo
                 Result.success(body.novoSaldo)
             } else {
-                val msg = if (response.code() == 400) "Saldo insuficiente para este resgate." else "Erro ao processar resgate."
+                val msg = if (response.code() == 400) "Saldo insuficiente." else "Erro ao processar resgate."
                 Result.failure(Exception(msg))
             }
         } catch (e: Exception) {
@@ -79,17 +74,12 @@ class HomeRepository @Inject constructor(
         }
     }
 
-    /**
-     * Envia pontos para outro usuário na API, deduz o saldo e
-     * salva a nova transação no banco local Room.
-     * Retorna o novo saldo em caso de sucesso.
-     */
     suspend fun enviar(token: String, pontos: Int, destinatario: String): Result<Int> {
         return try {
-            val formattedToken = "Bearer $token"
-            val response = apiService.enviar(formattedToken, EnviarRequest(pontos, destinatario))
-            if (response.isSuccessful && response.body() != null) {
-                val body = response.body()!!
+            val response = apiService.enviar("Bearer $token", EnviarRequest(pontos, destinatario))
+            val body = response.body()
+            if (response.isSuccessful && body != null) {
+                // Sincroniza banco local
                 transactionDao.insertTransaction(
                     TransactionEntity(
                         id = body.transacao.id,
@@ -99,17 +89,20 @@ class HomeRepository @Inject constructor(
                         dataOperacao = body.transacao.dataOperacao
                     )
                 )
+                _saldoFlow.value = body.novoSaldo
                 Result.success(body.novoSaldo)
             } else {
-                val msg = when (response.code()) {
-                    400 -> "Saldo insuficiente ou dados inválidos."
+                // Trata especificamente o erro 404 (usuário inexistente)
+                val errorMsg = when (response.code()) {
                     404 -> "Destinatário não encontrado."
-                    else -> "Erro ao enviar pontos."
+                    400 -> "Dados inválidos ou saldo insuficiente."
+                    401 -> "Sessão expirada."
+                    else -> "Erro ao enviar pontos (${response.code()})"
                 }
-                Result.failure(Exception(msg))
+                Result.failure(Exception(errorMsg))
             }
         } catch (e: Exception) {
-            Result.failure(e)
+            Result.failure(Exception("Falha na conexão: ${e.message}"))
         }
     }
 }

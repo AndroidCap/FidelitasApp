@@ -15,7 +15,7 @@ import javax.inject.Inject
 @HiltViewModel
 class LoginViewModel @Inject constructor(
     private val sessionManager: SessionManager,
-    private val authRepository: AuthRepository // Repositório da API real injetado
+    private val authRepository: AuthRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(LoginUiState())
@@ -47,6 +47,10 @@ class LoginViewModel @Inject constructor(
         _uiState.update { it.copy(rememberMe = rememberMe) }
     }
 
+    fun clearMessages() {
+        _uiState.update { it.copy(errorMessage = null, successMessage = null) }
+    }
+
     fun login() {
         val currentState = _uiState.value
 
@@ -63,20 +67,23 @@ class LoginViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
 
-            // Chama a API real construída em Node.js
             val result = authRepository.authenticate(currentState.email, currentState.password)
 
             result.fold(
                 onSuccess = { token ->
-                    // Login bem-sucedido!
-                    sessionManager.saveSession(token) // Passa o token recebido
-                    _uiState.update { it.copy(isLoading = false, isSuccess = true) }
+                    sessionManager.saveSession(token)
+                    _uiState.update { 
+                        it.copy(
+                            isLoading = false, 
+                            isSuccess = true,
+                            successMessage = "Login realizado com sucesso!"
+                        ) 
+                    }
                 },
                 onFailure = { exception ->
                     _uiState.update { it.copy(isLoading = false, errorMessage = exception.message) }
                 }
             )
-
         }
     }
 }

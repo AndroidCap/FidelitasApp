@@ -1,5 +1,6 @@
 package com.g1.fidelitasapp.ui.extrato
 
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -11,7 +12,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -21,23 +21,21 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.g1.fidelitasapp.data.database.TransactionEntity
@@ -48,22 +46,36 @@ import com.g1.fidelitasapp.ui.theme.SurfaceDark
 import com.g1.fidelitasapp.ui.theme.SurfaceDarkElevated
 import com.g1.fidelitasapp.ui.theme.TextPrimary
 import com.g1.fidelitasapp.ui.theme.TextSecondary
+import java.util.Locale
 
 @Composable
 fun ExtratoScreen(
     viewModel: ExtratoViewModel,
-    saldoAtual: Int, // Passamos o saldo do estado global para bater com o protótipo
+    saldoAtual: Int,
     onNavigateBack: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val context = LocalContext.current
+
+    // Observador de Toasts (Sucesso e Erro)
+    LaunchedEffect(uiState.errorMessage, uiState.successMessage) {
+        uiState.errorMessage?.let {
+            Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
+            viewModel.clearMessages()
+        }
+        uiState.successMessage?.let {
+            Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
+            viewModel.clearMessages()
+        }
+    }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(BackgroundDark)
-            .statusBarsPadding() // Garante que o Header fique abaixo do notch/câmera
+            .statusBarsPadding()
     ) {
-        // 1. Header de Navegação (Botão Voltar Visível)
+        // 1. Header
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -93,7 +105,7 @@ fun ExtratoScreen(
             }
         }
 
-        // 2. Card de Saldo Atual (Mockup style)
+        // 2. Card de Saldo
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -111,7 +123,7 @@ fun ExtratoScreen(
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = String.format("%,d", saldoAtual).replace(",", "."), // Ex: 3.250 ou 15.420
+                text = String.format(Locale("pt", "BR"), "%,d", saldoAtual).replace(",", "."),
                 color = AccentGold,
                 fontSize = 32.sp,
                 fontWeight = FontWeight.Bold
@@ -120,7 +132,7 @@ fun ExtratoScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // 3. Lista de transações
+        // 3. Lista
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -131,21 +143,6 @@ fun ExtratoScreen(
                     color = PrimaryGold,
                     modifier = Modifier.align(Alignment.Center)
                 )
-            } else if (uiState.errorMessage != null && uiState.transacoes.isEmpty()) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Text(
-                        text = uiState.errorMessage!!,
-                        color = Color.Red,
-                        fontSize = 15.sp,
-                        textAlign = TextAlign.Center
-                    )
-                }
             } else {
                 LazyColumn(
                     contentPadding = PaddingValues(start = 24.dp, end = 24.dp, bottom = 80.dp),
@@ -158,14 +155,11 @@ fun ExtratoScreen(
                 }
             }
         }
-
-
     }
 }
 
 @Composable
 fun TransacaoItem(transaction: TransactionEntity) {
-    // Quebra a string "19 Mai 2026" em Dia e Mês
     val dataPartes = transaction.dataOperacao.split(" ")
     val dia = dataPartes.getOrNull(0) ?: "00"
     val mes = dataPartes.getOrNull(1) ?: "Mai"
@@ -174,10 +168,10 @@ fun TransacaoItem(transaction: TransactionEntity) {
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
-            .background(SurfaceDark.copy(alpha = 0.9f)) // Estilo Glassmorphism
+            .background(SurfaceDark.copy(alpha = 0.9f))
             .border(
                 width = 1.dp,
-                color = PrimaryGold.copy(alpha = 0.15f), // Brilho de borda dourado
+                color = PrimaryGold.copy(alpha = 0.15f),
                 shape = RoundedCornerShape(16.dp)
             )
             .padding(16.dp),
@@ -188,7 +182,6 @@ fun TransacaoItem(transaction: TransactionEntity) {
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.weight(1f)
         ) {
-            // Widget da Data Estilizada (Mockup)
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier.width(44.dp)
@@ -206,7 +199,6 @@ fun TransacaoItem(transaction: TransactionEntity) {
                 )
             }
 
-            // Divisor vertical sutil
             Spacer(modifier = Modifier.width(12.dp))
             Box(
                 modifier = Modifier
@@ -216,7 +208,6 @@ fun TransacaoItem(transaction: TransactionEntity) {
             )
             Spacer(modifier = Modifier.width(16.dp))
 
-            // Detalhes da transação
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = transaction.descricao,
@@ -227,9 +218,8 @@ fun TransacaoItem(transaction: TransactionEntity) {
             }
         }
 
-        // Pontos e sinal (+ ou -)
         val sinal = if (transaction.isEntrada) "+" else "-"
-        val valorCor = if (transaction.isEntrada) PrimaryGold else Color(0xFFCF6679) // Vermelho suave do Tema
+        val valorCor = if (transaction.isEntrada) PrimaryGold else Color(0xFFCF6679)
 
         Text(
             text = "$sinal${transaction.pontos} pts",

@@ -19,6 +19,7 @@ data class EnviarPontosUiState(
     val pontos: String = "",
     val saldoDisponivel: Int = 0,
     val errorMessage: String? = null,
+    val successMessage: String? = null,
     val isSucesso: Boolean = false
 )
 
@@ -32,17 +33,23 @@ class EnviarPontosViewModel @Inject constructor(
     val uiState: StateFlow<EnviarPontosUiState> = _uiState.asStateFlow()
 
     init {
-        carregarSaldo()
+        carregarSaldoInicial()
+        observeSaldo()
     }
 
-    private fun carregarSaldo() {
+    private fun observeSaldo() {
+        viewModelScope.launch {
+            homeRepository.saldoFlow.collect { novoSaldo ->
+                _uiState.update { it.copy(saldoDisponivel = novoSaldo) }
+            }
+        }
+    }
+
+    private fun carregarSaldoInicial() {
         viewModelScope.launch {
             val token = sessionManager.tokenFlow.first()
             if (token.isNotEmpty()) {
-                val result = homeRepository.fetchDashboard(token)
-                if (result.isSuccess) {
-                    _uiState.update { it.copy(saldoDisponivel = result.getOrThrow().saldoPontos) }
-                }
+                homeRepository.fetchDashboard(token)
             }
         }
     }
@@ -52,67 +59,69 @@ class EnviarPontosViewModel @Inject constructor(
     }
 
     fun onPontosChanged(novosPontos: String) {
-        // Aceita apenas números
         if (novosPontos.all { it.isDigit() }) {
             _uiState.update { it.copy(pontos = novosPontos, errorMessage = null) }
         }
+    }
+
+    fun clearMessages() {
+        _uiState.update { it.copy(errorMessage = null, successMessage = null) }
     }
 
     fun processarEnvio(onSucesso: () -> Unit) {
         val state = _uiState.value
         val pontosInt = state.pontos.toIntOrNull() ?: 0
 
-        // Validações
         if (state.destinatario.isBlank()) {
-            _uiState.update { it.copy(errorMessage = "Digite o e-mail ou CPF do destinatário.") }
+            _uiState.update { it.copy(errorMessage = "Digite o destinatário.") }
             return
         }
         if (pontosInt <= 0) {
-            _uiState.update { it.copy(errorMessage = "A quantidade de pontos deve ser maior que zero.") }
+            _uiState.update { it.copy(errorMessage = "Pontos inválidos.") }
             return
         }
         if (pontosInt > state.saldoDisponivel) {
-            _uiState.update { it.copy(errorMessage = "Saldo insuficiente para esta operação.") }
+            _uiState.update { it.copy(errorMessage = "Saldo insuficiente.") }
             return
         }
 
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true) }
+            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
 
-            val token = sessionManager.tokenFlow.first()
-            val result = homeRepository.enviar(token, pontosInt, state.destinatario)
-            
-            result.fold(
-                onSuccess = { novoSaldo ->
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            isSucesso = true,
-                            saldoDisponivel = novoSaldo
-                        )
+            try {
+                val token = sessionManager.tokenFlow.first()
+                val result = homeRepository.enviar(token, pontosInt, state.destinatario)
+                
+                result.fold(
+                    onSuccess = {
+                        _uiState.update {
+                            it.copy(
+                                isLoading = false,
+                                isSucesso = true,
+                                successMessage = "Pontos enviados com sucesso!",
+                                destinatario = "",
+                                pontos = ""
+                            )
+                        }
+                        onSucesso()
+                    },
+                    onFailure = { error ->
+                        _uiState.update {
+                            it.copy(
+                                isLoading = false,
+                                errorMessage = error.message ?: "Erro ao enviar pontos."
+                            )
+                        }
                     }
-                    onSucesso()
-                },
-                onFailure = { error ->
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            errorMessage = error.message ?: "Erro ao enviar pontos."
-                        )
-                    }
+                )
+            } catch (e: Exception) {
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        errorMessage = "Falha na operação: ${e.message}"
+                    )
                 }
-            )
-        }
-    }
-
-    fun resetState() {
-        _uiState.update {
-            it.copy(
-                destinatario = "",
-                pontos = "",
-                isSucesso = false,
-                errorMessage = null
-            )
+            }
         }
     }
 }

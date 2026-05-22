@@ -8,9 +8,12 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.g1.fidelitasapp.data.database.AppDatabase
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -18,19 +21,17 @@ private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(na
 
 @Singleton
 class SessionManager @Inject constructor(
-    @ApplicationContext private val context: Context
+    @ApplicationContext private val context: Context,
+    private val database: AppDatabase
 ) {
     companion object {
         private val KEY_IS_LOGGED_IN = booleanPreferencesKey("is_logged_in")
         private val KEY_LOGIN_TIMESTAMP = longPreferencesKey("login_timestamp")
-        private val KEY_TOKEN = stringPreferencesKey("jwt_token") // Nova chave de token
+        private val KEY_TOKEN = stringPreferencesKey("jwt_token")
 
         private const val EXPIRATION_TIME_MS = 7L * 24L * 60L * 60L * 1000L
     }
 
-    /**
-     * Salva o status de login, o timestamp e o token JWT retornado pelo servidor.
-     */
     suspend fun saveSession(token: String) {
         val currentTime = System.currentTimeMillis()
         context.dataStore.edit { preferences ->
@@ -40,15 +41,22 @@ class SessionManager @Inject constructor(
         }
     }
 
+    /**
+     * Limpa a sessão e o banco SQLite de forma segura em thread de IO.
+     */
     suspend fun clearSession() {
-        context.dataStore.edit { preferences ->
-            preferences.clear()
+        withContext(Dispatchers.IO) {
+            context.dataStore.edit { preferences ->
+                preferences.clear()
+            }
+            try {
+                database.clearAllTables()
+            } catch (e: Exception) {
+                // Previne crash se o banco estiver fechado
+            }
         }
     }
 
-    /**
-     * Lê o token atual do DataStore (retorna String vazia se não existir).
-     */
     val tokenFlow: Flow<String> = context.dataStore.data.map { preferences ->
         preferences[KEY_TOKEN] ?: ""
     }

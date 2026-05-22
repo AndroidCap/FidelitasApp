@@ -1,5 +1,6 @@
 package com.g1.fidelitasapp.ui.catalogo
 
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -25,40 +26,54 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.g1.fidelitasapp.data.network.PromocaoResponse
+import com.g1.fidelitasapp.ui.components.GlassmorphismDialog
+import com.g1.fidelitasapp.ui.theme.AccentGold
 import com.g1.fidelitasapp.ui.theme.BackgroundDark
 import com.g1.fidelitasapp.ui.theme.PrimaryGold
 import com.g1.fidelitasapp.ui.theme.SurfaceDark
-import com.g1.fidelitasapp.ui.theme.SurfaceDarkElevated
 import com.g1.fidelitasapp.ui.theme.TextPrimary
 import com.g1.fidelitasapp.ui.theme.TextSecondary
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import com.g1.fidelitasapp.ui.components.GlassmorphismDialog
+import java.util.Locale
 
 @Composable
 fun CatalogoScreen(
     viewModel: CatalogoViewModel,
-    onTrocaConfirmada: (pontosGastos: Int) -> Unit // Adicionado para atualizar o saldo
+    onTrocaConfirmada: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    // Estados locais para controlar a exibição do diálogo e o item selecionado
+    val context = LocalContext.current
     var exibirDialogo by remember { mutableStateOf(false) }
     var premioSelecionado by remember { mutableStateOf<PromocaoResponse?>(null) }
+
+    // Observador de Toasts
+    LaunchedEffect(uiState.errorMessage, uiState.successMessage) {
+        uiState.errorMessage?.let {
+            Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
+            viewModel.clearMessages()
+        }
+        uiState.successMessage?.let {
+            Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
+            viewModel.clearMessages()
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -70,7 +85,7 @@ fun CatalogoScreen(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 16.dp),
+                .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
@@ -90,7 +105,33 @@ fun CatalogoScreen(
             }
         }
 
-        // Conteúdo
+        // Card de Saldo
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp, vertical = 8.dp)
+                .clip(RoundedCornerShape(16.dp))
+                .background(SurfaceDark)
+                .border(1.dp, PrimaryGold.copy(alpha = 0.15f), RoundedCornerShape(16.dp))
+                .padding(20.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = "Saldo Atual",
+                color = TextSecondary,
+                fontSize = 14.sp
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = String.format(Locale("pt", "BR"), "%,d", uiState.saldoPontos).replace(",", "."),
+                color = AccentGold,
+                fontSize = 32.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -101,23 +142,7 @@ fun CatalogoScreen(
                     color = PrimaryGold,
                     modifier = Modifier.align(Alignment.Center)
                 )
-            } else if (uiState.errorMessage != null) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Text(
-                        text = uiState.errorMessage!!,
-                        color = Color.Red,
-                        fontSize = 15.sp,
-                        textAlign = TextAlign.Center
-                    )
-                }
             } else {
-                // No LazyVerticalGrid, troque a ação do clique para ativar o diálogo:
                 LazyVerticalGrid(
                     columns = GridCells.Fixed(2),
                     contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
@@ -135,9 +160,8 @@ fun CatalogoScreen(
                         )
                     }
                 }
-            } // fecha o bloco do else
+            }
 
-            // Modal de Confirmação
             if (exibirDialogo && premioSelecionado != null) {
                 GlassmorphismDialog(
                     titulo = "Confirmar Resgate",
@@ -147,14 +171,14 @@ fun CatalogoScreen(
                     onConfirm = {
                         exibirDialogo = false
                         viewModel.resgatar(premioSelecionado!!) {
-                            onTrocaConfirmada(premioSelecionado!!.pontos)
+                            onTrocaConfirmada()
                         }
                     }
                 )
             }
-        } // fecha a Box (linha 94)
-    } // fecha a Column (linha 63)
-} // fecha a função CatalogoScreen (linha 54)
+        }
+    }
+}
 
 @Composable
 fun PremioGridItem(

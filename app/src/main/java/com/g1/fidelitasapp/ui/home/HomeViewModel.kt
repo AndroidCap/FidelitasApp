@@ -25,24 +25,32 @@ class HomeViewModel @Inject constructor(
 
     init {
         loadHomeData()
+        observeSaldo()
     }
 
-    /**
-     * Carrega as informações necessárias da API usando o token JWT salvo
-     */
+    private fun observeSaldo() {
+        viewModelScope.launch {
+            homeRepository.saldoFlow.collect { novoSaldo ->
+                _uiState.update { it.copy(saldoPontos = novoSaldo) }
+            }
+        }
+    }
+
+    fun clearMessages() {
+        _uiState.update { it.copy(errorMessage = null, successMessage = null) }
+    }
+
     fun loadHomeData() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
 
-            // Pega o token salvo no DataStore
             val token = sessionManager.tokenFlow.first()
 
             if (token.isEmpty()) {
-                _uiState.update { it.copy(isLoading = false, errorMessage = "Sessão inválida. Por favor, logue novamente.") }
+                _uiState.update { it.copy(isLoading = false) }
                 return@launch
             }
 
-            // Busca os dados da API em paralelo
             val dashboardResult = homeRepository.fetchDashboard(token)
             val promocoesResult = homeRepository.fetchPromocoes(token)
 
@@ -59,15 +67,13 @@ class HomeViewModel @Inject constructor(
                     )
                 }
             } else {
-                val errorMsg = dashboardResult.exceptionOrNull()?.message
-                    ?: promocoesResult.exceptionOrNull()?.message
-                    ?: "Erro desconhecido ao carregar dados"
-
-                _uiState.update {
-                    it.copy(
-                        isLoading = false,
-                        errorMessage = errorMsg
-                    )
+                if (sessionManager.tokenFlow.first().isNotEmpty()) {
+                    val errorMsg = dashboardResult.exceptionOrNull()?.message
+                        ?: promocoesResult.exceptionOrNull()?.message
+                        ?: "Erro ao carregar dados"
+                    _uiState.update { it.copy(isLoading = false, errorMessage = errorMsg) }
+                } else {
+                    _uiState.update { it.copy(isLoading = false) }
                 }
             }
         }
@@ -93,17 +99,16 @@ class HomeViewModel @Inject constructor(
                         it.copy(
                             isResgating = false,
                             saldoPontos = novoSaldo,
-                            promocaoSelecionada = null
+                            promocaoSelecionada = null,
+                            successMessage = "Resgate realizado com sucesso!"
                         )
                     }
                 },
                 onFailure = { error ->
-                    _uiState.update {
-                        it.copy(
-                            isResgating = false,
-                            errorMessage = error.message,
-                            promocaoSelecionada = null
-                        )
+                    if (sessionManager.tokenFlow.first().isNotEmpty()) {
+                        _uiState.update { it.copy(isResgating = false, errorMessage = error.message, promocaoSelecionada = null) }
+                    } else {
+                        _uiState.update { it.copy(isResgating = false, promocaoSelecionada = null) }
                     }
                 }
             )

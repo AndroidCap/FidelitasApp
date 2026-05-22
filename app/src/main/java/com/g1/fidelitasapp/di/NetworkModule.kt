@@ -1,6 +1,7 @@
 package com.g1.fidelitasapp.di
 
 import com.g1.fidelitasapp.data.network.ApiService
+import com.g1.fidelitasapp.data.network.AuthInterceptor
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -16,16 +17,16 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 object NetworkModule {
 
-    // IP especial do emulador para acessar a API no Render
-    private const val BASE_URL = "https://fidelitasapi.onrender.com/"
+    private const val BASE_URL = "http://10.0.2.2:3000/"
 
     @Provides
     @Singleton
-    fun provideOkHttpClient(): OkHttpClient {
+    fun provideOkHttpClient(authInterceptor: AuthInterceptor): OkHttpClient {
         val logger = HttpLoggingInterceptor().apply {
-            level = HttpLoggingInterceptor.Level.BODY // Exibe no Logcat o corpo de envio e resposta
+            level = HttpLoggingInterceptor.Level.BODY
         }
         return OkHttpClient.Builder()
+            .addInterceptor(authInterceptor) // Intercepta 401 para limpar dados e deslogar
             .addInterceptor(logger)
             .connectTimeout(60, TimeUnit.SECONDS)
             .readTimeout(60, TimeUnit.SECONDS)
@@ -49,4 +50,3 @@ object NetworkModule {
         return retrofit.create(ApiService::class.java)
     }
 }
-

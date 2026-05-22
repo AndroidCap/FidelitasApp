@@ -17,7 +17,9 @@ import javax.inject.Inject
 data class CatalogoUiState(
     val isLoading: Boolean = false,
     val premios: List<PromocaoResponse> = emptyList(),
-    val errorMessage: String? = null
+    val saldoPontos: Int = 0,
+    val errorMessage: String? = null,
+    val successMessage: String? = null
 )
 
 @HiltViewModel
@@ -31,6 +33,19 @@ class CatalogoViewModel @Inject constructor(
 
     init {
         loadPremios()
+        observeSaldo()
+    }
+
+    private fun observeSaldo() {
+        viewModelScope.launch {
+            repository.saldoFlow.collect { novoSaldo ->
+                _uiState.update { it.copy(saldoPontos = novoSaldo) }
+            }
+        }
+    }
+
+    fun clearMessages() {
+        _uiState.update { it.copy(errorMessage = null, successMessage = null) }
     }
 
     fun loadPremios() {
@@ -39,11 +54,11 @@ class CatalogoViewModel @Inject constructor(
 
             val token = sessionManager.tokenFlow.first()
             if (token.isEmpty()) {
-                _uiState.update {
-                    it.copy(isLoading = false, errorMessage = "Sessão expirada. Faça login novamente.")
-                }
+                _uiState.update { it.copy(isLoading = false) }
                 return@launch
             }
+
+            repository.fetchDashboard(token)
 
             val result = repository.fetchPromocoes(token)
             if (result.isSuccess) {
@@ -54,11 +69,15 @@ class CatalogoViewModel @Inject constructor(
                     )
                 }
             } else {
-                _uiState.update {
-                    it.copy(
-                        isLoading = false,
-                        errorMessage = result.exceptionOrNull()?.message ?: "Erro ao carregar prêmios"
-                    )
+                if (sessionManager.tokenFlow.first().isNotEmpty()) {
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            errorMessage = result.exceptionOrNull()?.message ?: "Erro ao carregar prêmios"
+                        )
+                    }
+                } else {
+                    _uiState.update { it.copy(isLoading = false) }
                 }
             }
         }
@@ -72,15 +91,24 @@ class CatalogoViewModel @Inject constructor(
             
             result.fold(
                 onSuccess = {
-                    _uiState.update { it.copy(isLoading = false) }
+                    _uiState.update { 
+                        it.copy(
+                            isLoading = false,
+                            successMessage = "Resgate de '${promocao.titulo}' realizado com sucesso!"
+                        ) 
+                    }
                     onSuccess()
                 },
                 onFailure = { error ->
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            errorMessage = error.message ?: "Erro ao resgatar"
-                        )
+                    if (sessionManager.tokenFlow.first().isNotEmpty()) {
+                        _uiState.update {
+                            it.copy(
+                                isLoading = false,
+                                errorMessage = error.message ?: "Erro ao resgatar"
+                            )
+                        }
+                    } else {
+                        _uiState.update { it.copy(isLoading = false) }
                     }
                 }
             )
