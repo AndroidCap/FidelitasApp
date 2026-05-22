@@ -46,6 +46,9 @@ dependencies {
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
+    
+    // Splash Screen API
+    implementation("androidx.core:core-splashscreen:1.0.1")
 
     // Hilt
     implementation(libs.hilt.android)
@@ -73,7 +76,7 @@ dependencies {
 
     // Navegação do Jetpack Compose
     implementation(libs.androidx.navigation.compose)
-// Persistência de Sessão e Preferências (DataStore)
+    // Persistência de Sessão e Preferências (DataStore)
     implementation(libs.androidx.datastore.preferences)
     // Carregamento de Imagens da Web (Coil)
     implementation(libs.coil.compose)
