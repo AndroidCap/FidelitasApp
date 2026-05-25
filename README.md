@@ -1,6 +1,6 @@
 # Fidelitas App - Sistema de Fidelidade e Recompensas
 
-Este projeto representa o Trabalho de Conclusão de Curso (TCC) focado no desenvolvimento de uma solução mobile nativa para gestão de programas de fidelidade, permitindo o acúmulo, resgate e transferência de pontos entre usuários.
+Este projeto representa o Trabalho Final de Desenvolvimento Android (Capgemini/ProWay) focado em uma solução mobile nativa para gestão de programas de fidelidade, permitindo o acúmulo, resgate e transferência de pontos entre usuários.
 
 ## 👥 Integrantes do Grupo
 *   **Couto**, Alexsander Montenegro de
